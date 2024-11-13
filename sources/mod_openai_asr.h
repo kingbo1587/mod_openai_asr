@@ -35,6 +35,7 @@
 #define VAD_STORE_FRAMES        64
 #define VAD_RECOVERY_FRAMES     20
 #define DEF_SENTENCE_MAX_TIME   15
+#define VAD_EVENT "asr::vad"
 
 typedef struct {
     switch_mutex_t          *mutex;
@@ -57,6 +58,7 @@ typedef struct {
     const char              *proxy_credentials;
     const char              *opt_encoding;
     const char              *opt_model;
+    char                    *session_uuid;
 } globals_t;
 
 typedef struct {

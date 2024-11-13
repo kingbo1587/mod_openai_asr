@@ -346,6 +346,16 @@ static switch_status_t asr_feed(switch_asr_handle_t *ah, void *data, unsigned in
         if(vad_state == SWITCH_VAD_STATE_START_TALKING) {
             asr_ctx->vad_state = vad_state;
             fl_has_audio = SWITCH_TRUE;
+            if(asr_ctx->session_uuid){
+                // fire event for vad start talking
+                switch_event_t *event;
+                if (switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, VAD_EVENT) == SWITCH_STATUS_SUCCESS) {
+                    switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "VAD_Type", "start");
+                    switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Unique-ID", asr_ctx->session_uuid);
+                    DUMP_EVENT(event);
+                    switch_event_fire(&event);
+                }
+            }
         } else if (vad_state == SWITCH_VAD_STATE_STOP_TALKING) {
             asr_ctx->vad_state = vad_state;
             fl_has_audio = SWITCH_FALSE;
@@ -488,6 +498,8 @@ static void asr_text_param(switch_asr_handle_t *ah, char *param, const char *val
         if(val) asr_ctx->opt_lang = switch_core_strdup(ah->memory_pool, val);
     } else if(strcasecmp(param, "model") == 0) {
         if(val) asr_ctx->opt_model = switch_core_strdup(ah->memory_pool, val);
+    } else if(strcasecmp(param, "session_uuid") == 0) {
+        if(val) asr_ctx->session_uuid = switch_core_strdup(ah->memory_pool, val);
     }
 
 }
@@ -613,6 +625,8 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_openai_asr_shutdown) {
     switch_mutex_lock(globals.mutex);
     fl_wloop = (globals.active_threads > 0);
     switch_mutex_unlock(globals.mutex);
+
+    switch_event_free_subclass(VAD_EVENT);
 
     if(fl_wloop) {
         switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Waiting for termination (%d) threads...\n", globals.active_threads);
