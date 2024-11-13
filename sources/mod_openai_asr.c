@@ -380,8 +380,8 @@ static switch_status_t asr_feed(switch_asr_handle_t *ah, void *data, unsigned in
                     tau_buf->len = (hdr_sz + vblen + data_len);
                     switch_malloc(tau_buf->data, tau_buf->len);
 
-                    memcpy(tau_buf->data, (void *)(ptr + hdr_ofs), hdr_sz);
-                    memcpy(tau_buf->data + hdr_sz , (void *)(ptr + 0), vblen);
+                    memcpy(tau_buf->data, (void *)((char *)ptr + hdr_ofs), hdr_sz);
+                    memcpy(tau_buf->data + hdr_sz , (void *)((char *)ptr + 0), vblen);
                     memcpy(tau_buf->data + rlen, data, data_len);
 
                     if(switch_queue_trypush(asr_ctx->q_audio, tau_buf) != SWITCH_STATUS_SUCCESS) {
@@ -396,7 +396,7 @@ static switch_status_t asr_feed(switch_asr_handle_t *ah, void *data, unsigned in
                     tau_buf->len = (rlen + data_len);
                     switch_malloc(tau_buf->data, tau_buf->len);
 
-                    memcpy(tau_buf->data, (void *)(ptr + ofs), rlen);
+                    memcpy(tau_buf->data, (void *)((char *)ptr + ofs), rlen);
                     memcpy(tau_buf->data + rlen, data, data_len);
 
                     if(switch_queue_trypush(asr_ctx->q_audio, tau_buf) != SWITCH_STATUS_SUCCESS) {
