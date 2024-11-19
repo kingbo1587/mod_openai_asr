@@ -84,6 +84,7 @@ typedef struct {
     uint8_t                 fl_abort;
     char                    *opt_lang;
     char                    *opt_model;
+    char                    *session_uuid;
 } asr_ctx_t;
 
 typedef struct {
