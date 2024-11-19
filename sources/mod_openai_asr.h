@@ -92,7 +92,7 @@ typedef struct {
     switch_byte_t           *data;
 } xdata_buffer_t;
 
-/* curl.c */
+/* my_curl.c */
 switch_status_t curl_perform(switch_buffer_t *recv_buffer, char *model_name, char *filename, globals_t *globals);
 
 /* utils.c */
