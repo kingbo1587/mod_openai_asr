@@ -58,7 +58,6 @@ typedef struct {
     const char              *proxy_credentials;
     const char              *opt_encoding;
     const char              *opt_model;
-    char                    *session_uuid;
 } globals_t;
 
 typedef struct {
@@ -85,6 +84,8 @@ typedef struct {
     char                    *opt_lang;
     char                    *opt_model;
     char                    *session_uuid;
+    char                    *caller_no;
+    char                    *dest_no;
 } asr_ctx_t;
 
 typedef struct {
@@ -93,7 +94,7 @@ typedef struct {
 } xdata_buffer_t;
 
 /* my_curl.c */
-switch_status_t curl_perform(switch_buffer_t *recv_buffer, char *model_name, char *filename, globals_t *globals);
+switch_status_t curl_perform(switch_buffer_t *recv_buffer, asr_ctx_t *asr_ctx, char *filename, globals_t *globals);
 
 /* utils.c */
 char *chunk_write(switch_byte_t *buf, uint32_t buf_len, uint32_t channels, uint32_t samplerate, const char *file_ext);

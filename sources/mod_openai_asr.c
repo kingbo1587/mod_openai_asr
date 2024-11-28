@@ -130,11 +130,13 @@ static size_t curl_io_write_callback(char *buffer, size_t size, size_t nitems, v
     return len;
 }
 
-switch_status_t curl_perform(switch_buffer_t *recv_buffer, char *model_name, char *filename, globals_t *globals) {
+switch_status_t curl_perform(switch_buffer_t *recv_buffer, asr_ctx_t *asr_ctx, char *filename, globals_t *globals) {
+    char *model_name = (char *)(asr_ctx->opt_model ? asr_ctx->opt_model : globals->opt_model);
+    
     switch_status_t status = SWITCH_STATUS_SUCCESS;
     CURL *curl_handle = NULL;
     curl_mime *form = NULL;
-    curl_mimepart *field1=NULL, *field2=NULL;
+    curl_mimepart *field1=NULL, *field2=NULL, *field3=NULL, *field4=NULL, *field5=NULL;
     switch_curl_slist_t *headers = NULL;
     switch_CURLcode curl_ret = 0;
     long http_resp = 0;
@@ -183,6 +185,24 @@ switch_status_t curl_perform(switch_buffer_t *recv_buffer, char *model_name, cha
         if((field2 = curl_mime_addpart(form))) {
             curl_mime_name(field2, "file");
             curl_mime_filedata(field2, filename);
+        }
+        if(asr_ctx->session_uuid != NULL){
+            if((field3 = curl_mime_addpart(form))) {
+                curl_mime_name(field3, "session_uuid");
+                curl_mime_data(field3, asr_ctx->session_uuid, CURL_ZERO_TERMINATED);
+            }
+        }
+        if(asr_ctx->caller_no != NULL){
+            if((field4 = curl_mime_addpart(form))) {
+                curl_mime_name(field4, "caller_no");
+                curl_mime_data(field4, asr_ctx->caller_no, CURL_ZERO_TERMINATED);
+            }
+        }
+        if(asr_ctx->dest_no != NULL){
+            if((field5 = curl_mime_addpart(form))) {
+                curl_mime_name(field5, "dest_no");
+                curl_mime_data(field5, asr_ctx->dest_no, CURL_ZERO_TERMINATED);
+            }
         }
         switch_curl_easy_setopt(curl_handle, CURLOPT_MIMEPOST, form);
     }
@@ -305,8 +325,8 @@ static void *SWITCH_THREAD_FUNC transcribe_thread(switch_thread_t *thread, void 
             }
             if(chunk_fname) {
                 switch_buffer_zero(curl_recv_buffer);
-
-                status = curl_perform(curl_recv_buffer, (char *)(asr_ctx->opt_model ? asr_ctx->opt_model : globals.opt_model), chunk_fname, &globals);
+                
+                status = curl_perform(curl_recv_buffer, asr_ctx, chunk_fname, &globals);
                 http_recv_len = switch_buffer_peek_zerocopy(curl_recv_buffer, &http_response_ptr);
                 if(status == SWITCH_STATUS_SUCCESS) {
                     if(http_response_ptr && http_recv_len) {
@@ -532,20 +552,17 @@ static switch_status_t asr_feed(switch_asr_handle_t *ah, void *data, unsigned in
         }
 
         vad_state = switch_vad_process(asr_ctx->vad, (int16_t *)data, (data_len / sizeof(int16_t)));
-        // if(vad_state) {
-        //     switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "ki log asr vad state %s\n", switch_vad_state2str(vad_state));
-        // }
         if(vad_state == SWITCH_VAD_STATE_START_TALKING) {
             asr_ctx->vad_state = vad_state;
             fl_has_audio = SWITCH_TRUE;
-            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "ki log asr vad start talking, session_uuid is %s\n", asr_ctx->session_uuid);
+            switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "ki log asr vad start talking, session_uuid is %s\n", asr_ctx->session_uuid);
             if(asr_ctx->session_uuid){
                 // fire event for vad start talking
                 switch_event_t *event;
                 if (switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, VAD_EVENT) == SWITCH_STATUS_SUCCESS) {
                     switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "VAD_Type", "start");
                     switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Unique-ID", asr_ctx->session_uuid);
-                    DUMP_EVENT(event);
+                    // DUMP_EVENT(event);
                     switch_event_fire(&event);
                 }
             } 
@@ -693,6 +710,10 @@ static void asr_text_param(switch_asr_handle_t *ah, char *param, const char *val
         if(val) asr_ctx->opt_model = switch_core_strdup(ah->memory_pool, val);
     } else if(strcasecmp(param, "session_uuid") == 0) {
         if(val) asr_ctx->session_uuid = switch_core_strdup(ah->memory_pool, val);
+    } else if(strcasecmp(param, "caller_no") == 0) {
+        if(val) asr_ctx->caller_no = switch_core_strdup(ah->memory_pool, val);
+    } else if(strcasecmp(param, "dest_no") == 0) {
+        if(val) asr_ctx->dest_no = switch_core_strdup(ah->memory_pool, val);
     }
 
 }
